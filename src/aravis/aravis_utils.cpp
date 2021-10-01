@@ -121,6 +121,8 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
         }
     }
 
+    GError* err = nullptr;
+
     if (ARV_IS_GC_ENUMERATION (node))
     {
         if (type_to_use == TCAM_PROPERTY_TYPE_ENUMERATION)
@@ -145,7 +147,14 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
                 }
             }
 
-            const char* current_value = arv_device_get_string_feature_value(arv_camera_get_device(camera), feature);
+            const char* current_value = arv_device_get_string_feature_value(arv_camera_get_device(camera), feature, &err);
+
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
 
             if (!current_value)
             {
@@ -198,7 +207,14 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
                 return std::make_shared<PropertyBoolean>(impl, prop, type);
             }
 
-            const char* current_value = arv_device_get_string_feature_value(arv_camera_get_device(camera), feature);
+            const char* current_value = arv_device_get_string_feature_value(arv_camera_get_device(camera), feature, &err);
+
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
 
             if (strcmp(current_value, "On") == 0)
             {
@@ -231,7 +247,15 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
         {
             //camera_property prop = {};
             prop.type = TCAM_PROPERTY_TYPE_INTEGER;
-            prop.value.i.value = arv_device_get_integer_feature_value(arv_camera_get_device(camera), feature);
+            prop.value.i.value = arv_device_get_integer_feature_value(arv_camera_get_device(camera), feature, &err);
+
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
+
             prop.value.i.default_value = prop.value.i.value;
 
             prop.value.i.step = 1;
@@ -239,7 +263,15 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
             arv_device_get_integer_feature_bounds(arv_camera_get_device(camera),
                                                   feature,
                                                   &prop.value.i.min,
-                                                  &prop.value.i.max);
+                                                  &prop.value.i.max,
+                                                  &err);
+
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+           }
 
             return std::make_shared<PropertyInteger>(impl, prop, type);
 
@@ -248,14 +280,28 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
         {
 
             prop.type = TCAM_PROPERTY_TYPE_DOUBLE;
-            prop.value.d.value = arv_device_get_integer_feature_value(arv_camera_get_device(camera), feature);
-            prop.value.d.default_value = prop.value.i.value;
+            prop.value.d.value = arv_device_get_integer_feature_value(arv_camera_get_device(camera), feature, &err);
 
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
+
+            prop.value.d.default_value = prop.value.i.value;
 
             prop.value.d.step = 1.0;
 
             int64_t min, max;
-            arv_device_get_integer_feature_bounds(arv_camera_get_device(camera), feature, &min, &max);
+            arv_device_get_integer_feature_bounds(arv_camera_get_device(camera), feature, &min, &max, &err);
+
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
 
             prop.value.d.min = min;
             prop.value.d.max = max;
@@ -289,14 +335,26 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
         if (type_to_use == TCAM_PROPERTY_TYPE_INTEGER)
         {
             prop.type = TCAM_PROPERTY_TYPE_INTEGER;
-            prop.value.i.value = arv_device_get_float_feature_value(arv_camera_get_device(camera), feature);
-            prop.value.i.default_value = prop.value.i.value;
+            prop.value.i.value = arv_device_get_float_feature_value(arv_camera_get_device(camera), feature, &err);
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
 
+            prop.value.i.default_value = prop.value.i.value;
 
             prop.value.i.step = 1;
 
             double min, max;
-            arv_device_get_float_feature_bounds(arv_camera_get_device(camera), feature, &min, &max);
+            arv_device_get_float_feature_bounds(arv_camera_get_device(camera), feature, &min, &max, &err);
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
 
             prop.value.i.min = min;
             prop.value.i.max = max;
@@ -308,9 +366,24 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
 
             double min, max;
 
-            arv_device_get_float_feature_bounds(arv_camera_get_device(camera), feature, &min, &max);
+            arv_device_get_float_feature_bounds(arv_camera_get_device(camera), feature, &min, &max, &err);
 
-            prop.value.d.value = arv_device_get_float_feature_value(arv_camera_get_device(camera), feature);
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
+
+            prop.value.d.value = arv_device_get_float_feature_value(arv_camera_get_device(camera), feature, &err);
+
+            if (err)
+            {
+                tcam_error("Received aravis error: %s", err->message);
+                g_error_free(err);
+                err = nullptr;
+            }
+
             prop.value.d.min = min;
             prop.value.d.max = max;
             prop.value.d.default_value = prop.value.d.value;
@@ -330,7 +403,14 @@ std::shared_ptr<Property> tcam::create_property (ArvCamera* camera,
         prop.value.i.step = 1;
 
         prop.value.b.value = arv_device_get_boolean_feature_value(arv_camera_get_device(camera),
-                                                                  feature);
+                                                                  feature,
+                                                                  &err);
+        if (err)
+        {
+            tcam_error("Received aravis error: %s", err->message);
+            g_error_free(err);
+            err = nullptr;
+        }
 
         prop.value.b.default_value = prop.value.b.value;
 
