@@ -91,17 +91,6 @@ V4l2Device::~V4l2Device ()
 
     this->stop_monitor_v4l2_thread = true;
 
-    // signal the udev monitor to exit it's poll/select
-    ssize_t write_ret = write(udev_monitor_pipe[1], "q", 1);
-    if (write_ret != 1)
-    {
-        tcam_error("Error closing udev monitoring pipe. write return '%zd' errno: %s",
-                   write_ret, strerror(errno));
-    }
-
-    // close write pipe fd
-    close(udev_monitor_pipe[1]);
-
     if( monitor_v4l2_thread.joinable() )
     {
         monitor_v4l2_thread.join();
@@ -1398,6 +1387,9 @@ bool V4l2Device::changeV4L2Control (const property_description& prop_desc)
 
 void V4l2Device::stream ()
 {
+    static const int log_repetition = 10;
+    int log_repetition_counter = 0;
+
     int lost_countdown = lost_countdown_default;
     // period elapsed for current image
     int waited_seconds = 0;
@@ -1475,10 +1467,18 @@ void V4l2Device::stream ()
             }
             waiting_period = stream_timeout_sec_;
         }
-        if( lost_countdown <= 0 )
+        if (lost_countdown <= 0 && log_repetition_counter < log_repetition)
         {
             tcam_warning("Did not receive image for long time.");
             lost_countdown = lost_countdown_default;
+            if (log_repetition_counter < log_repetition)
+            {
+                log_repetition_counter++;
+            }
+            if (log_repetition_counter >= log_repetition)
+            {
+                tcam_warning("Stopping messages \"Did not receive image for long time.\".");
+            }
         }
     }
 }
@@ -1658,13 +1658,12 @@ void V4l2Device::monitor_v4l2_thread_func ()
            object is set to 0, which will cause select() to not
            block. */
         fd_set fds;
-        int select_fd = (udev_fd > udev_monitor_pipe[0] ? udev_fd : udev_monitor_pipe[0]);
+        int select_fd = udev_fd + 1;
         struct timeval tv;
         int ret;
 
         FD_ZERO(&fds);
         FD_SET(udev_fd, &fds);
-        FD_SET(udev_monitor_pipe[1], &fds);
         tv.tv_sec = 1;
         tv.tv_usec = 0;
 

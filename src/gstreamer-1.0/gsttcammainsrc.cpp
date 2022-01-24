@@ -1040,27 +1040,39 @@ static void gst_tcam_mainsrc_device_lost_callback (const struct tcam_device_info
         return;
     }
 
+#if GST_VERSION_MAJOR >= 1 && GST_VERSION_MINOR >= 10
+
+    GST_ELEMENT_ERROR_WITH_DETAILS(GST_ELEMENT(self),
+                                   RESOURCE,
+                                   NOT_FOUND,
+                                   ("Device lost (%s)", self->device_serial.c_str()),
+                                   ((nullptr)),
+                                   ("serial", G_TYPE_STRING, self->device_serial.c_str(), nullptr)
+        );
+
+#else
+
     GST_ELEMENT_ERROR(GST_ELEMENT(self),
                       RESOURCE, NOT_FOUND,
                       ("Device lost (%s)", self->device_serial.c_str()),
                       (NULL));
 
-#if GST_VERSION_MAJOR >= 1 && GST_VERSION_MINOR >= 10
-
-    GST_ELEMENT_ERROR_WITH_DETAILS(GST_ELEMENT(self),
-                                   RESOURCE, NOT_FOUND,
-                                   ("Device lost"),
-                                   ((nullptr)),
-                                   ("serial", G_TYPE_STRING, self->device_serial.c_str(), nullptr));
-
 #endif
 
     self->is_running = false;
-    gst_element_send_event(GST_ELEMENT(self), gst_event_new_eos());
+
+    // do not send EOS here
+    // this can cause a deadlock in the tcambin state handling
+    // EOS will be triggered in mainsrc_create and transmitted through the capture thread
+    // this has been triggered by setting self->device->is_running to false
+
+    //gst_element_send_event(GST_ELEMENT(self), gst_event_new_eos());
+
 
     // do not call stop
     // some users experience segfaults
     // let EOS handle this. gstreamer will call stop for us
+
     // gst_tcam_mainsrc_stop(GST_BASE_SRC(self));
 }
 

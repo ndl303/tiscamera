@@ -59,14 +59,11 @@ static gboolean bus_callback (GstBus* bus,
 
             // if you use tcamsrc directly this will be the name you give to the element
             // if (strcmp(source_name, "tcamsrc0") == 0)
-            if (strcmp(source_name, "tcambin-source") == 0)
+            if (starts_with(err->message, "Device lost ("))
             {
-                if (starts_with(err->message, "Device lost ("))
-                {
-                    char* s_str = strstr(err->message, "(");
-                    const char* serial = strtok(s_str, "()");
-                    printf("Device lost came from device with serial = %s\n", serial);
-                }
+                char* s_str = strstr(err->message, "(");
+                const char* serial = strtok(s_str, "()");
+                printf("Device lost came from device with serial = %s\n", serial);
             }
 
             g_error_free (err);
@@ -110,10 +107,11 @@ int main (int argc, char *argv[])
     gst_init(&argc, &argv); // init gstreamer
 
     const char* serial = NULL; // set this if you do not want the first found device
+    //const char* serial = "33910255";//NULL; // set this if you do not want the first found device
 
     GError* err = NULL;
 
-    GstElement* pipeline = gst_parse_launch("tcambin name=source ! videoconvert ! ximagesink", &err);
+    GstElement* pipeline = gst_parse_launch("tcambin name=source ! videoconvert ! ximagesink sync=false", &err);
 
     /* test for error */
     if (pipeline == NULL)
@@ -150,6 +148,7 @@ int main (int argc, char *argv[])
     g_main_loop_run (loop);
 
     g_main_loop_unref(loop);
+    printf("Stopping\n");
     gst_element_set_state(pipeline, GST_STATE_NULL);
 
     gst_object_unref( pipeline );
